@@ -2,7 +2,7 @@ import io
 import json
 import unittest
 
-from inspector import evaluate_slo, parse_line, read_rows, summarize
+from inspector import MAX_LINE_BYTES, evaluate_slo, parse_line, read_rows, summarize
 
 
 def line(route='/tours', status=200, duration=20, trace='abc'):
@@ -11,6 +11,21 @@ def line(route='/tours', status=200, duration=20, trace='abc'):
 
 
 class InspectorTests(unittest.TestCase):
+    def test_oversized_record_is_rejected_before_consuming_the_whole_stream(self):
+        for character in (b'x', b' ', b'\r'):
+            with self.subTest(character=character):
+                source = io.BytesIO(character * (MAX_LINE_BYTES * 64))
+                with self.assertRaises(ValueError):
+                    read_rows(source)
+                self.assertLessEqual(source.tell(), MAX_LINE_BYTES * 2)
+
+    def test_boundary_sized_records_preserve_line_ending_and_iterable_support(self):
+        record = line().rstrip(b'\n').ljust(MAX_LINE_BYTES, b' ')
+        for ending in (b'\n', b'\r\n', b''):
+            with self.subTest(ending=ending):
+                self.assertEqual(read_rows(io.BytesIO(record + ending))[0]['route'], '/tours')
+        self.assertEqual(read_rows(iter([line()]))[0]['route'], '/tours')
+
     def test_nearest_rank_latency_and_error_rate(self):
         rows = read_rows(io.BytesIO(b''.join(line(status=503 if index == 19 else 200,
                                              duration=index + 1) for index in range(20))))

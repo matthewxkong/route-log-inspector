@@ -23,6 +23,8 @@ python -m unittest discover -s tests -v
 
 The SLO command returns exit code 0 when every selected route passes, 3 when a threshold fails or no rows match, 2 for invalid input, and 1 for file errors. It reports only on **supplied sample rows**, not production service health. A timestamp must have a timezone; each row must contain `timestamp`, a route template, HTTP `status`, `duration_ms`, and `trace_id`. Inputs are bounded to 50,000 rows, 8 MiB total, and 16 KiB per row. Duplicate JSON keys, malformed UTF-8, query-bearing routes, and invalid numeric types are rejected.
 
+File and stdin reads are capped before parsing each record. The 16 KiB physical-row limit includes surrounding whitespace and excludes LF/CRLF terminators; oversized records are rejected without reading the entire line into memory. A final record without a newline is supported.
+
 No requests are made to a log service, and no third-party packages are installed. The sample is synthetic. See [HISTORY.md](HISTORY.md) for provenance.
 
 ## Time windows, timelines, and baselines

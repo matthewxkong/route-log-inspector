@@ -51,12 +51,18 @@ def parse_line(raw):
 def read_rows(source):
     rows = []
     total_bytes = 0
-    for line_number, raw in enumerate(source, 1):
+    lines = iter(lambda: source.readline(MAX_LINE_BYTES + 3), b'') if hasattr(source, 'readline') else source
+    for line_number, raw in enumerate(lines, 1):
         if line_number > MAX_ROWS:
             raise ValueError('Log file exceeds 50000 rows')
         total_bytes += len(raw)
         if total_bytes > MAX_FILE_BYTES:
             raise ValueError('Log file exceeds 8 MiB')
+        record = raw.removesuffix(b'\n')
+        if raw.endswith(b'\r\n'):
+            record = record[:-1]
+        if len(record) > MAX_LINE_BYTES:
+            raise ValueError(f'Line {line_number}: Log row exceeds 16384 UTF-8 bytes')
         if not raw.strip():
             continue
         try:
