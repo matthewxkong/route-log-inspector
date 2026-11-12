@@ -12,10 +12,12 @@ def line(route='/tours', status=200, duration=20, trace='abc'):
 
 class InspectorTests(unittest.TestCase):
     def test_oversized_record_is_rejected_before_consuming_the_whole_stream(self):
-        source = io.BytesIO(b'x' * (MAX_LINE_BYTES * 64))
-        with self.assertRaises(ValueError):
-            read_rows(source)
-        self.assertLessEqual(source.tell(), MAX_LINE_BYTES * 2)
+        for character in (b'x', b' ', b'\r'):
+            with self.subTest(character=character):
+                source = io.BytesIO(character * (MAX_LINE_BYTES * 64))
+                with self.assertRaises(ValueError):
+                    read_rows(source)
+                self.assertLessEqual(source.tell(), MAX_LINE_BYTES * 2)
 
     def test_boundary_sized_records_preserve_line_ending_and_iterable_support(self):
         record = line().rstrip(b'\n').ljust(MAX_LINE_BYTES, b' ')

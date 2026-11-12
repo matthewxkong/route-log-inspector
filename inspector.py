@@ -58,7 +58,10 @@ def read_rows(source):
         total_bytes += len(raw)
         if total_bytes > MAX_FILE_BYTES:
             raise ValueError('Log file exceeds 8 MiB')
-        if len(raw.rstrip(b'\r\n')) > MAX_LINE_BYTES:
+        record = raw.removesuffix(b'\n')
+        if raw.endswith(b'\r\n'):
+            record = record[:-1]
+        if len(record) > MAX_LINE_BYTES:
             raise ValueError(f'Line {line_number}: Log row exceeds 16384 UTF-8 bytes')
         if not raw.strip():
             continue
