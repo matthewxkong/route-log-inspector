@@ -33,7 +33,7 @@ def main(argv=None):
     parser.add_argument('--slo-5xx-pct', help='optional maximum 5xx percent for every selected route')
     args = parser.parse_args(argv)
     if hasattr(sys.stdout, 'reconfigure'):
-        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stdout.reconfigure(encoding='utf-8', newline='')
     try:
         if args.path == '-':
             rows = read_rows(sys.stdin.buffer)
