@@ -24,6 +24,14 @@ class CLITests(unittest.TestCase):
         self.assertEqual(rows[0]['errors_5xx'], '1')
         self.assertEqual(rows[0]['error_rate_pct'], '50.00')
 
+    def test_csv_has_exactly_one_terminator_per_record(self):
+        result = subprocess.run([sys.executable, 'cli.py', 'sample.jsonl', '--route',
+                                 '/tours/bookings', '--format', 'csv'], cwd=ROOT,
+                                capture_output=True, check=True)
+        rows = list(csv.reader(io.StringIO(result.stdout.decode('utf-8'), newline='')))
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[1][0], '/tours/bookings')
+
     def test_missing_file_is_a_file_error(self):
         result = self.run_cli('missing.jsonl')
         self.assertEqual(result.returncode, 1)
