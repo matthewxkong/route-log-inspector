@@ -27,6 +27,8 @@ def main(argv=None):
     parser.add_argument('--until', help='exclusive timezone-aware ISO upper bound')
     parser.add_argument('--timeline', action='store_true', help='JSON event timeline; requires --trace-id')
     parser.add_argument('--baseline', help='compare selected rows with a separate JSONL baseline')
+    parser.add_argument('--baseline-since', help='inclusive time bound for baseline rows')
+    parser.add_argument('--baseline-until', help='exclusive time bound for baseline rows')
     parser.add_argument('--minimum-requests', type=int, default=20, help='per-sample route count needed for comparison')
     parser.add_argument('--format', choices=('json', 'csv'), default='json')
     parser.add_argument('--slo-p95-ms', type=int, help='optional p95 threshold for every selected route')
@@ -35,6 +37,8 @@ def main(argv=None):
     if hasattr(sys.stdout, 'reconfigure'):
         sys.stdout.reconfigure(encoding='utf-8')
     try:
+        if (args.baseline_since is not None or args.baseline_until is not None) and not args.baseline:
+            raise ValueError('Baseline time bounds require --baseline')
         if args.path == '-':
             rows = read_rows(sys.stdin.buffer)
         else:
@@ -54,7 +58,7 @@ def main(argv=None):
                 result = trace_timeline(rows, args.trace_id)
             else:
                 with open(args.baseline, 'rb') as source:
-                    baseline = read_rows(source)
+                    baseline = window_rows(read_rows(source), args.baseline_since, args.baseline_until)
                 if args.route is not None or args.trace_id is not None:
                     baseline = [row for row in baseline if (args.route is None or row['route'] == args.route)
                                 and (args.trace_id is None or row['trace_id'] == args.trace_id)]
