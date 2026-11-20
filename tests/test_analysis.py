@@ -13,6 +13,18 @@ def row(stamp='2026-01-02T12:00:00Z', duration=20, status=200, route='/tours', t
 
 
 class AnalysisTests(unittest.TestCase):
+    def test_baseline_window(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'sample.jsonl'
+            path.write_text('\n'.join(json.dumps(row(stamp)) for stamp in
+                                      ('2026-01-01T00:00:00Z', '2026-01-02T00:00:00Z')), encoding='utf-8')
+            cli = Path(__file__).resolve().parents[1] / 'cli.py'
+            result = subprocess.run([sys.executable, str(cli), str(path), '--baseline', str(path),
+                                     '--baseline-until', '2026-01-02T00:00:00Z'],
+                                    capture_output=True, check=True)
+        item = json.loads(result.stdout)['routes'][0]
+        self.assertEqual((item['baseline_requests'], item['current_requests']), (1, 2))
+
     def test_windows_compare_absolute_instants_and_exclude_upper_boundary(self):
         rows = [row('2026-01-02T04:00:00-08:00'), row('2026-01-02T12:01:00Z')]
         self.assertEqual(window_rows(rows, '2026-01-02T12:00:00Z', '2026-01-02T12:01:00Z'), rows[:1])
