@@ -27,7 +27,7 @@ def main(argv=None):
     parser.add_argument('--until', help='exclusive timezone-aware ISO upper bound')
     parser.add_argument('--timeline', action='store_true', help='JSON event timeline; requires --trace-id')
     parser.add_argument('--baseline', help='compare selected rows with a separate JSONL baseline')
-    parser.add_argument('--minimum-requests', type=int, default=20, help='per-sample route count needed for comparison')
+    parser.add_argument('--minimum-requests', type=int, help='per-sample route count needed for comparison (default: 20)')
     parser.add_argument('--format', choices=('json', 'csv'), default='json')
     parser.add_argument('--slo-p95-ms', type=int, help='optional p95 threshold for every selected route')
     parser.add_argument('--slo-5xx-pct', help='optional maximum 5xx percent for every selected route')
@@ -35,6 +35,8 @@ def main(argv=None):
     if hasattr(sys.stdout, 'reconfigure'):
         sys.stdout.reconfigure(encoding='utf-8')
     try:
+        if args.minimum_requests is not None and not args.baseline:
+            raise ValueError('--minimum-requests requires --baseline')
         if args.path == '-':
             rows = read_rows(sys.stdin.buffer)
         else:
@@ -58,7 +60,7 @@ def main(argv=None):
                 if args.route is not None or args.trace_id is not None:
                     baseline = [row for row in baseline if (args.route is None or row['route'] == args.route)
                                 and (args.trace_id is None or row['trace_id'] == args.trace_id)]
-                result = compare_samples(baseline, rows, args.minimum_requests)
+                result = compare_samples(baseline, rows, 20 if args.minimum_requests is None else args.minimum_requests)
             print(json.dumps(result, indent=2, ensure_ascii=False))
             return 0
         result = summarize(rows, args.route, args.trace_id)

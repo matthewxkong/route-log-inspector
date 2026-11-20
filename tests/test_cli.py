@@ -11,6 +11,12 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class CLITests(unittest.TestCase):
+    def test_comparison_threshold(self):
+        result = self.run_cli('sample.jsonl', '--minimum-requests', '5')
+        self.assertEqual(result.returncode, 2)
+        self.assertIn('--baseline', result.stderr)
+        self.assertEqual(result.stdout, '')
+
     def run_cli(self, *args):
         return subprocess.run([sys.executable, 'cli.py', *args], cwd=ROOT, capture_output=True, text=True)
 
